@@ -27,13 +27,19 @@ class _QuizScreenState extends State<QuizScreen> {
   }
 
   Future<void> _fetchQuiz() async {
+    setState(() => _isLoading = true);
     final apiKey = context.read<AppProvider>().apiKey;
-    final mcqs = await _aiService.getMcqs(widget.sourceText, apiKey);
-    if (!mounted) return;
-    setState(() {
-      _mcqs = mcqs;
-      _isLoading = false;
-    });
+    try {
+      final mcqs = await _aiService.getMcqs(widget.sourceText, apiKey);
+      if (!mounted) return;
+      setState(() {
+        _mcqs = mcqs;
+        _isLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+    }
   }
 
   void _checkAnswer(String option) {
@@ -62,64 +68,77 @@ class _QuizScreenState extends State<QuizScreen> {
       appBar: AppBar(title: const Text('Practice Quiz')),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
-                    "Question \${_currentIndex + 1} of \${_mcqs.length}",
-                    style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.grey),
+          : _mcqs.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                      const SizedBox(height: 16),
+                      const Text("Failed to generate MCQs.\nPlease try again.", textAlign: TextAlign.center, style: TextStyle(fontSize: 18)),
+                      const SizedBox(height: 24),
+                      ElevatedButton(onPressed: _fetchQuiz, child: const Text("Retry")),
+                    ],
                   ),
-                  const SizedBox(height: 16),
-                  Text(
-                    _mcqs[_currentIndex]['question'],
-                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 32),
-                  ...(_mcqs[_currentIndex]['options'] as List<String>).map((option) {
-                    final isCorrect = option == _mcqs[_currentIndex]['answer'];
-                    final isSelected = option == _selectedOption;
-                    
-                    Color? bgColor;
-                    if (_showAnswer) {
-                      if (isCorrect) {
-                        bgColor = Colors.green[300];
-                      } else if (isSelected) {
-                        bgColor = Colors.red[300];
-                      }
-                    }
+                )
+              : Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                        "Question ${_currentIndex + 1} of ${_mcqs.length}",
+                        style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.grey),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        _mcqs[_currentIndex]['question'],
+                        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 32),
+                      ...(_mcqs[_currentIndex]['options'] as List<dynamic>).map((option) {
+                        final isCorrect = option.toString() == _mcqs[_currentIndex]['answer'].toString();
+                        final isSelected = option.toString() == _selectedOption;
+                        
+                        Color? bgColor;
+                        if (_showAnswer) {
+                          if (isCorrect) {
+                            bgColor = Colors.green[300];
+                          } else if (isSelected) {
+                            bgColor = Colors.red[300];
+                          }
+                        }
 
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 12.0),
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: bgColor,
-                          padding: const EdgeInsets.all(16),
-                          alignment: Alignment.centerLeft,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            side: BorderSide(color: Colors.grey[300]!),
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 12.0),
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: bgColor,
+                              padding: const EdgeInsets.all(16),
+                              alignment: Alignment.centerLeft,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                side: BorderSide(color: Colors.grey[300]!),
+                              ),
+                            ),
+                            onPressed: () => _checkAnswer(option.toString()),
+                            child: Text(option.toString(), style: const TextStyle(color: Colors.black87, fontSize: 16)),
                           ),
+                        );
+                      }),
+                      const Spacer(),
+                      if (_showAnswer)
+                        ElevatedButton(
+                          onPressed: _nextQuestion,
+                          style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))
+                          ),
+                          child: Text(_currentIndex < _mcqs.length - 1 ? 'Next Question' : 'Finish Quiz', style: const TextStyle(fontSize: 16)),
                         ),
-                        onPressed: () => _checkAnswer(option),
-                        child: Text(option, style: const TextStyle(color: Colors.black87, fontSize: 16)),
-                      ),
-                    );
-                  }),
-                  const Spacer(),
-                  if (_showAnswer)
-                    ElevatedButton(
-                      onPressed: _nextQuestion,
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))
-                      ),
-                      child: Text(_currentIndex < _mcqs.length - 1 ? 'Next Question' : 'Finish Quiz', style: const TextStyle(fontSize: 16)),
-                    ),
-                ],
-              ),
-            ),
+                    ],
+                  ),
+                ),
     );
   }
 }
