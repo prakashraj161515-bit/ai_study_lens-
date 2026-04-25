@@ -1,8 +1,12 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:provider/provider.dart';
 import '../widgets/feature_card.dart';
 import '../services/ocr_service.dart';
+import '../services/ai_service.dart';
+import '../providers/app_provider.dart';
 import 'result_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -24,7 +28,18 @@ class _HomeScreenState extends State<HomeScreen> {
       if (image == null) return;
 
       setState(() => _isLoading = true);
-      final text = await _ocrService.extractText(File(image.path));
+
+      String text = "";
+      if (kIsWeb) {
+        // On Web, send image bytes directly to Gemini
+        final bytes = await image.readAsBytes();
+        final apiKey = context.read<AppProvider>().apiKey;
+        text = await AiService().getAnswerFromImage(bytes, apiKey);
+      } else {
+        // On Mobile, use ML Kit for faster OCR
+        text = await _ocrService.extractText(File(image.path));
+      }
+
       setState(() => _isLoading = false);
 
       if (text.isNotEmpty && mounted) {
@@ -36,7 +51,7 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     } catch (e) {
       setState(() => _isLoading = false);
-      _showError("Failed to process image.");
+      _showError("Failed to process image: $e");
     }
   }
 

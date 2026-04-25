@@ -14,6 +14,44 @@ Provide a detailed step-by-step explanation.
     return getAnswer("Say 'Hi'", apiKey, isExplanation: false);
   }
 
+  Future<String> getAnswerFromImage(List<int> imageBytes, String apiKey) async {
+    if (apiKey.isEmpty) return "API Key missing.";
+    
+    if (apiKey.startsWith('sk-')) {
+       return "OpenAI Image Support not implemented yet. Use Gemini for images.";
+    }
+
+    try {
+      final response = await http.post(
+        Uri.parse('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$apiKey'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'contents': [
+            {
+              'parts': [
+                {'text': smartPrompt},
+                {
+                  'inline_data': {
+                    'mime_type': 'image/png',
+                    'data': base64Encode(imageBytes)
+                  }
+                }
+              ]
+            }
+          ]
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(utf8.decode(response.bodyBytes));
+        return data['candidates'][0]['content']['parts'][0]['text'];
+      }
+      return "Gemini Error: ${response.body}";
+    } catch (e) {
+      return "Error: $e";
+    }
+  }
+
   // New method to find what models the user's key actually supports
   Future<String> getAvailableModels(String apiKey) async {
     if (apiKey.startsWith('sk-')) return "OpenAI Key detected. Using gpt-4o-mini.";
