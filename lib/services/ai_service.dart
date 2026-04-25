@@ -23,7 +23,7 @@ Provide a detailed step-by-step explanation.
 
     try {
       final response = await http.post(
-        Uri.parse('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$apiKey'),
+        Uri.parse('https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent?key=$apiKey'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'contents': [
@@ -117,8 +117,9 @@ Provide a detailed step-by-step explanation.
   }
 
   Future<String> _callGemini(String text, String apiKey, String systemInstruction) async {
-    // Using the futuristic models found in your API Key's supported list
+    // Primary model set to Gemini 3.1 Flash Lite
     List<String> modelNames = [
+      'gemini-3.1-flash-lite-preview',
       'gemini-2.0-flash',
       'gemini-flash-latest',
       'gemini-pro-latest',
