@@ -1,0 +1,27 @@
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.idea/
+.vscode/
+
+# Flutter/Pub related
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+
+# IGNORE ALL BUILD CONTENT BUT ALLOW WEB
+build/*
+!build/web/
+
+# Android/iOS related
+**/android/app/src/main/res/generated
+**/android/key.properties
+**/android/local.properties
+*.keystore
+*.jks
