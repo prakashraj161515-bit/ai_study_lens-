@@ -158,13 +158,42 @@ Provide a detailed step-by-step explanation.
 
   Future<List<Map<String, dynamic>>> getMcqs(String text, String apiKey, {String difficulty = 'Medium', int count = 3}) async {
     if (apiKey.isEmpty) return [];
-    final prompt = 'Generate $count MCQs for: $text. Return ONLY JSON array.';
+    final prompt = '''
+Generate $count MCQs for the following topic: $text
+Difficulty: $difficulty
+
+Return ONLY a JSON array with this exact structure:
+[
+  {
+    "question": "The question text",
+    "options": ["Option A", "Option B", "Option C", "Option D"],
+    "answer": "The exact string of the correct option"
+  }
+]
+Do NOT include any explanations or markdown formatting outside the JSON.
+''';
     
     if (apiKey.startsWith('sk-')) {
       return _callOpenAIMCQs(text, apiKey, prompt);
     } else {
       return _callGeminiMCQs(text, apiKey, prompt);
     }
+  }
+
+  List<Map<String, dynamic>> _extractJsonList(String content) {
+    try {
+      // Find the first [ and last ] to extract the JSON array
+      final start = content.indexOf('[');
+      final end = content.lastIndexOf(']');
+      if (start != -1 && end != -1) {
+        final jsonStr = content.substring(start, end + 1);
+        final decoded = jsonDecode(jsonStr) as List;
+        return decoded.map((e) => Map<String, dynamic>.from(e)).toList();
+      }
+    } catch (e) {
+      print("JSON Extraction Error: $e");
+    }
+    return [];
   }
 
   Future<List<Map<String, dynamic>>> _callOpenAIMCQs(String text, String apiKey, String prompt) async {
@@ -180,8 +209,7 @@ Provide a detailed step-by-step explanation.
       if (response.statusCode == 200) {
         final data = jsonDecode(utf8.decode(response.bodyBytes));
         final content = data['choices'][0]['message']['content'];
-        final cleanContent = content.replaceAll('```json', '').replaceAll('```', '').trim();
-        return (jsonDecode(cleanContent) as List).map((e) => e as Map<String, dynamic>).toList();
+        return _extractJsonList(content);
       }
     } catch (_) {}
     return [];
@@ -199,8 +227,7 @@ Provide a detailed step-by-step explanation.
       if (response.statusCode == 200) {
         final data = jsonDecode(utf8.decode(response.bodyBytes));
         final content = data['candidates'][0]['content']['parts'][0]['text'];
-        final cleanContent = content.replaceAll('```json', '').replaceAll('```', '').trim();
-        return (jsonDecode(cleanContent) as List).map((e) => e as Map<String, dynamic>).toList();
+        return _extractJsonList(content);
       }
     } catch (_) {}
     return [];
