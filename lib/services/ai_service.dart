@@ -118,12 +118,12 @@ Provide a detailed step-by-step explanation.
   }
 
   Future<String> _callGemini(String text, String apiKey, String systemInstruction) async {
-    // Primary model set to Gemini 3.1 Flash Lite
+    // Using only confirmed working Gemini models
     List<String> modelNames = [
+      'gemini-2.0-flash',
       'gemini-1.5-flash',
       'gemini-1.5-pro',
-      'gemini-2.0-flash-exp',
-      'gemini-pro',
+      'gemini-1.5-flash-latest',
     ];
 
     String? lastError;
