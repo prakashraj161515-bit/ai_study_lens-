@@ -3,8 +3,16 @@ import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
 import '../services/ai_service.dart';
 
-class SettingsScreen extends StatelessWidget {
+class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
+
+  @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
+  bool _testingApi = false;
+  bool _checkingModels = false;
 
   @override
   Widget build(BuildContext context) {
@@ -31,13 +39,15 @@ class SettingsScreen extends StatelessWidget {
           ),
           if (appProvider.apiKey.isNotEmpty)
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
               child: Column(
                 children: [
                   ElevatedButton.icon(
-                    onPressed: () => _testApi(context, appProvider.apiKey),
-                    icon: const Icon(Icons.security),
-                    label: const Text('Test API Connection'),
+                    onPressed: _testingApi ? null : () => _testApi(appProvider.apiKey),
+                    icon: _testingApi
+                        ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                        : const Icon(Icons.security),
+                    label: Text(_testingApi ? 'Testing...' : 'Test API Connection'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.blue.shade50,
                       minimumSize: const Size(double.infinity, 45),
@@ -45,9 +55,11 @@ class SettingsScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                   OutlinedButton.icon(
-                    onPressed: () => _checkModels(context, appProvider.apiKey),
-                    icon: const Icon(Icons.list),
-                    label: const Text('Check Available Models'),
+                    onPressed: _checkingModels ? null : () => _checkModels(appProvider.apiKey),
+                    icon: _checkingModels
+                        ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                        : const Icon(Icons.list),
+                    label: Text(_checkingModels ? 'Loading...' : 'Check Available Models'),
                     style: OutlinedButton.styleFrom(
                       minimumSize: const Size(double.infinity, 45),
                     ),
@@ -140,23 +152,19 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 
-  Future<void> _testApi(BuildContext context, String apiKey) async {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const Center(child: CircularProgressIndicator()),
-    );
+  Future<void> _testApi(String apiKey) async {
+    setState(() => _testingApi = true);
 
     final response = await AiService().testConnection(apiKey);
-    if (!context.mounted) return;
-    Navigator.pop(context); // Close loading
 
-    if (!context.mounted) return;
+    if (!mounted) return;
+    setState(() => _testingApi = false);
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('API Test Result'),
-        content: Text(response),
+        content: SingleChildScrollView(child: Text(response)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -167,18 +175,14 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 
-  Future<void> _checkModels(BuildContext context, String apiKey) async {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const Center(child: CircularProgressIndicator()),
-    );
+  Future<void> _checkModels(String apiKey) async {
+    setState(() => _checkingModels = true);
 
     final response = await AiService().getAvailableModels(apiKey);
-    if (!context.mounted) return;
-    Navigator.pop(context); // Close loading
 
-    if (!context.mounted) return;
+    if (!mounted) return;
+    setState(() => _checkingModels = false);
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
