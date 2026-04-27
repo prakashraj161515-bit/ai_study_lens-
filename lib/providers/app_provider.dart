@@ -7,7 +7,6 @@ class AppProvider with ChangeNotifier {
   
   bool isPremium = false;
   String currentLanguage = 'en'; 
-  String apiKey = '';
   List<Map<String, dynamic>> savedMarksheets = [];
 
   AppProvider(this._prefs) {
@@ -15,7 +14,6 @@ class AppProvider with ChangeNotifier {
   }
 
   void _loadSettings() {
-    apiKey = _prefs.getString('api_key') ?? '';
     currentLanguage = _prefs.getString('language') ?? 'en';
     notifyListeners();
   }
@@ -33,12 +31,6 @@ class AppProvider with ChangeNotifier {
   void setLanguage(String langCode) {
     currentLanguage = langCode;
     _prefs.setString('language', langCode);
-    notifyListeners();
-  }
-
-  void setApiKey(String key) {
-    apiKey = key;
-    _prefs.setString('api_key', key);
     notifyListeners();
   }
 }

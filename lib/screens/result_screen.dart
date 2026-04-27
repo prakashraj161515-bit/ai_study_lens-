@@ -33,15 +33,14 @@ class _ResultScreenState extends State<ResultScreen> {
   Future<void> _fetchData({required bool isExplanation}) async {
     setState(() => _isLoading = true);
     
-    final appProvider = context.read<AppProvider>();
     final aiResponse = await _aiService.getAnswer(
       widget.extractedText, 
-      appProvider.apiKey, 
       isExplanation: isExplanation
     );
     
     if (!mounted) return;
     
+    final appProvider = context.read<AppProvider>();
     final currentLang = appProvider.currentLanguage;
     final translatedResponse = await _translationService.translate(aiResponse, currentLang);
     

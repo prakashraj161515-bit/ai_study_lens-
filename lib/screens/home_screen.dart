@@ -1,12 +1,8 @@
-import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:provider/provider.dart';
 import '../widgets/feature_card.dart';
-import '../services/ocr_service.dart';
 import '../services/ai_service.dart';
-import '../providers/app_provider.dart';
 import 'result_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -18,40 +14,31 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final ImagePicker _picker = ImagePicker();
-  final OcrService _ocrService = OcrService();
   final TextEditingController _manualInputController = TextEditingController();
   bool _isLoading = false;
 
   Future<void> _processImage(ImageSource source) async {
-    final appProvider = context.read<AppProvider>();
-    if (appProvider.apiKey.isEmpty) {
-      _showError("Please set your API Key in Settings first.");
-      return;
-    }
-
     try {
       final XFile? image = await _picker.pickImage(source: source);
       if (image == null) return;
 
       setState(() => _isLoading = true);
 
-      String text = "";
-      if (kIsWeb) {
-        final bytes = await image.readAsBytes();
-        text = await AiService().getAnswerFromImage(bytes, appProvider.apiKey);
-      } else {
-        text = await _ocrService.extractText(File(image.path));
-      }
+      // Read image bytes directly (Works on both Web and Mobile)
+      final bytes = await image.readAsBytes();
+      
+      // Use Backend Proxy to extract text via Gemini
+      String text = await AiService().getAnswerFromImage(bytes);
 
       if (!mounted) return;
       setState(() => _isLoading = false);
 
-      if (text.isNotEmpty) {
+      if (text.isNotEmpty && !text.startsWith('Error:')) {
         Navigator.push(context, MaterialPageRoute(
           builder: (_) => ResultScreen(extractedText: text),
         ));
       } else {
-        _showError("No text found in the image.");
+        _showError("Failed to extract text: $text");
       }
     } catch (e) {
       if (mounted) setState(() => _isLoading = false);
@@ -74,7 +61,6 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void dispose() {
     _manualInputController.dispose();
-    _ocrService.dispose();
     super.dispose();
   }
 

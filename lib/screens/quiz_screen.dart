@@ -30,9 +30,8 @@ class _QuizScreenState extends State<QuizScreen> {
 
   Future<void> _fetchQuiz() async {
     setState(() => _isLoading = true);
-    final apiKey = context.read<AppProvider>().apiKey;
     try {
-      final mcqs = await _aiService.getMcqs(widget.sourceText, apiKey);
+      final mcqs = await _aiService.getMcqs(widget.sourceText);
       if (!mounted) return;
       setState(() {
         _mcqs = mcqs;
