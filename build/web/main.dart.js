@@ -41632,10 +41632,10 @@ return A.L($async$w_,r)},
 vY(a,b,c){return this.a3H(a,b,c)},
 a3H(a3,a4,a5){var s=0,r=A.M(t.N),q,p=2,o=[],n,m,l,k,j,i,h,g,f,e,d,c,b,a,a0,a1,a2
 var $async$vY=A.N(function(a6,a7){if(a6===1){o.push(a7)
-s=p}for(;;)switch(s){case 0:a0=["gemini-2.0-flash","gemini-1.5-flash","gemini-1.5-pro","gemini-1.5-flash-latest"]
+s=p}for(;;)switch(s){case 0:a0=["gemini-3.1-flash-lite-preview","gemini-2.0-flash","gemini-1.5-flash","gemini-1.5-pro","gemini-1.5-flash-latest"]
 a1=null
 j=t.N,i="INSTRUCTION: "+a5+"\n\nQUESTION: "+a3,h=t.m0,g=t.xW,f=t.Ud,e=t.pQ,d=0
-case 3:if(!(d<4)){s=5
+case 3:if(!(d<5)){s=5
 break}n=a0[d]
 p=7
 c=A.eB("https://generativelanguage.googleapis.com/v1beta/models/"+A.j(n)+":generateContent?key="+a4)
