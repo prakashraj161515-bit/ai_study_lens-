@@ -3,11 +3,16 @@ import 'package:provider/provider.dart';
 import 'providers/app_provider.dart';
 import 'screens/main_navigation.dart';
 
-void main() {
+import 'package:shared_preferences/shared_preferences.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => AppProvider()),
+        ChangeNotifierProvider(create: (_) => AppProvider(prefs)),
       ],
       child: const AiStudyLensApp(),
     ),

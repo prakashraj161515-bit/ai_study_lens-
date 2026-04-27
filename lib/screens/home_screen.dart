@@ -23,6 +23,12 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isLoading = false;
 
   Future<void> _processImage(ImageSource source) async {
+    final appProvider = context.read<AppProvider>();
+    if (appProvider.apiKey.isEmpty) {
+      _showError("Please set your API Key in Settings first.");
+      return;
+    }
+
     try {
       final XFile? image = await _picker.pickImage(source: source);
       if (image == null) return;
@@ -31,18 +37,16 @@ class _HomeScreenState extends State<HomeScreen> {
 
       String text = "";
       if (kIsWeb) {
-        // On Web, send image bytes directly to Gemini
         final bytes = await image.readAsBytes();
-        final apiKey = context.read<AppProvider>().apiKey;
-        text = await AiService().getAnswerFromImage(bytes, apiKey);
+        text = await AiService().getAnswerFromImage(bytes, appProvider.apiKey);
       } else {
-        // On Mobile, use ML Kit for faster OCR
         text = await _ocrService.extractText(File(image.path));
       }
 
+      if (!mounted) return;
       setState(() => _isLoading = false);
 
-      if (text.isNotEmpty && mounted) {
+      if (text.isNotEmpty) {
         Navigator.push(context, MaterialPageRoute(
           builder: (_) => ResultScreen(extractedText: text),
         ));
@@ -50,7 +54,7 @@ class _HomeScreenState extends State<HomeScreen> {
         _showError("No text found in the image.");
       }
     } catch (e) {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
       _showError("Failed to process image: $e");
     }
   }
@@ -77,26 +81,41 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('AI Study Lens'), elevation: 0),
+      appBar: AppBar(
+        title: const Text('AI Study Lens', style: TextStyle(fontWeight: FontWeight.bold)),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings),
+            onPressed: () => Navigator.pushNamed(context, '/settings'), // Assuming you might add routing, or just use the nav bar
+          )
+        ],
+      ),
       body: _isLoading 
-        ? const Center(child: CircularProgressIndicator())
+        ? Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const CircularProgressIndicator(),
+                const SizedBox(height: 16),
+                Text("Analyzing your question...", style: TextStyle(color: Colors.grey[600])),
+              ],
+            ),
+          )
         : SingleChildScrollView(
-            padding: const EdgeInsets.all(16.0),
+            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Text(
-                  "Scan Question",
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 16),
+                _buildHeader(),
+                const SizedBox(height: 24),
                 Row(
                   children: [
                     Expanded(
                       child: FeatureCard(
                         title: 'Camera',
-                        subtitle: 'Take a photo',
-                        icon: Icons.camera_alt,
+                        subtitle: 'Snap a photo',
+                        icon: Icons.camera_alt_rounded,
                         onTap: () => _processImage(ImageSource.camera),
                       ),
                     ),
@@ -104,39 +123,90 @@ class _HomeScreenState extends State<HomeScreen> {
                     Expanded(
                       child: FeatureCard(
                         title: 'Gallery',
-                        subtitle: 'Upload photo',
-                        icon: Icons.photo_library,
+                        subtitle: 'Upload image',
+                        icon: Icons.image_rounded,
                         onTap: () => _processImage(ImageSource.gallery),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 32),
-                const Text(
-                  "Or type manually",
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                const SizedBox(height: 40),
+                Row(
+                  children: [
+                    const Text(
+                      "Manual Input",
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                    const Spacer(),
+                    TextButton(
+                      onPressed: () => _manualInputController.clear(),
+                      child: const Text("Clear"),
+                    )
+                  ],
                 ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: _manualInputController,
-                  maxLines: 4,
-                  decoration: InputDecoration(
-                    hintText: "Enter your question here...",
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                const SizedBox(height: 12),
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.grey[50],
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.grey[200]!),
+                  ),
+                  child: TextField(
+                    controller: _manualInputController,
+                    maxLines: 5,
+                    decoration: const InputDecoration(
+                      hintText: "Paste or type your question here...",
+                      contentPadding: EdgeInsets.all(16),
+                      border: InputBorder.none,
+                    ),
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 24),
                 ElevatedButton(
                   onPressed: _processManualText,
                   style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    backgroundColor: Theme.of(context).primaryColor,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 18),
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                   ),
-                  child: const Text('Get Result', style: TextStyle(fontSize: 16)),
+                  child: const Text('Analyze Question', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                ),
+                const SizedBox(height: 32),
+              ],
+            ),
+          ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Theme.of(context).primaryColor.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "Study Smarter,",
+                  style: TextStyle(fontSize: 16, color: Theme.of(context).primaryColor, fontWeight: FontWeight.w500),
+                ),
+                const Text(
+                  "Scan Anything!",
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                 ),
               ],
             ),
           ),
+          Icon(Icons.auto_awesome, size: 40, color: Theme.of(context).primaryColor),
+        ],
+      ),
     );
   }
 }

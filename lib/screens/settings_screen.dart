@@ -148,8 +148,10 @@ class SettingsScreen extends StatelessWidget {
     );
 
     final response = await AiService().testConnection(apiKey);
+    if (!context.mounted) return;
     Navigator.pop(context); // Close loading
 
+    if (!context.mounted) return;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -173,8 +175,10 @@ class SettingsScreen extends StatelessWidget {
     );
 
     final response = await AiService().getAvailableModels(apiKey);
+    if (!context.mounted) return;
     Navigator.pop(context); // Close loading
 
+    if (!context.mounted) return;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(

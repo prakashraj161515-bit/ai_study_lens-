@@ -73,79 +73,130 @@ class _ResultScreenState extends State<ResultScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Result')),
+      backgroundColor: Colors.grey[50],
+      appBar: AppBar(
+        title: const Text('Analysis Result', style: TextStyle(fontWeight: FontWeight.bold)),
+        backgroundColor: Colors.white,
+      ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
-              padding: const EdgeInsets.all(16.0),
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.all(20.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Text(
-                    "Original Question:",
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                  ),
-                  const SizedBox(height: 8),
+                  _buildSectionHeader("Original Question", Icons.help_outline),
+                  const SizedBox(height: 12),
                   Container(
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: Colors.grey[200],
-                      borderRadius: BorderRadius.circular(8),
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: Colors.grey[200]!),
                     ),
-                    child: Text(widget.extractedText),
+                    child: Text(
+                      widget.extractedText,
+                      style: const TextStyle(fontSize: 15, color: Colors.black87),
+                    ),
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 32),
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        _showingExplanation ? "Detailed Explanation:" : "Direct Answer:",
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+                      _buildSectionHeader(
+                        _showingExplanation ? "Detailed Explanation" : "AI Answer", 
+                        _showingExplanation ? Icons.lightbulb : Icons.auto_awesome_rounded
                       ),
+                      const Spacer(),
                       IconButton(
-                        icon: const Icon(Icons.volume_up, color: Colors.blue),
+                        icon: const Icon(Icons.volume_up_rounded, color: Colors.blue),
                         onPressed: _speak,
-                      )
+                        tooltip: "Listen",
+                      ),
                     ],
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 12),
                   Container(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
-                      color: Colors.blue[50],
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.blue[200]!)
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [Colors.blue.shade50, Colors.white],
+                      ),
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(color: Colors.blue.shade100),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.blue.withOpacity(0.05),
+                          blurRadius: 20,
+                          offset: const Offset(0, 10),
+                        ),
+                      ],
                     ),
                     child: Text(
                       _displayText,
-                      style: const TextStyle(fontSize: 16, height: 1.5),
+                      style: const TextStyle(fontSize: 16, height: 1.6, color: Colors.black87),
                     ),
                   ),
-                  const SizedBox(height: 24),
-                  
+                  const SizedBox(height: 40),
                   if (!_showingExplanation)
-                    OutlinedButton.icon(
+                    _buildActionButton(
                       onPressed: () => _fetchData(isExplanation: true),
-                      icon: const Icon(Icons.lightbulb),
-                      label: const Text("Get Detailed Explanation"),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
+                      icon: Icons.auto_stories_rounded,
+                      label: "Explain Step-by-Step",
+                      isPrimary: false,
                     ),
-                    
                   const SizedBox(height: 16),
-                  ElevatedButton(
+                  _buildActionButton(
                     onPressed: _goToQuiz,
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                    child: const Text('Generate Practice MCQ', style: TextStyle(fontSize: 16)),
+                    icon: Icons.quiz_rounded,
+                    label: "Generate Practice Quiz",
+                    isPrimary: true,
                   ),
+                  const SizedBox(height: 40),
                 ],
               ),
             ),
+    );
+  }
+
+  Widget _buildSectionHeader(String title, IconData icon) {
+    return Row(
+      children: [
+        Icon(icon, size: 20, color: Colors.blue),
+        const SizedBox(width: 8),
+        Text(
+          title.toUpperCase(),
+          style: TextStyle(
+            fontSize: 13, 
+            fontWeight: FontWeight.w800, 
+            color: Colors.blue.shade800,
+            letterSpacing: 1.2
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildActionButton({
+    required VoidCallback onPressed, 
+    required IconData icon, 
+    required String label, 
+    required bool isPrimary
+  }) {
+    return ElevatedButton.icon(
+      onPressed: onPressed,
+      icon: Icon(icon, size: 20),
+      label: Text(label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: isPrimary ? Colors.blue.shade600 : Colors.white,
+        foregroundColor: isPrimary ? Colors.white : Colors.blue.shade600,
+        padding: const EdgeInsets.symmetric(vertical: 20),
+        elevation: isPrimary ? 4 : 0,
+        side: isPrimary ? null : BorderSide(color: Colors.blue.shade100),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      ),
     );
   }
 }
