@@ -52,10 +52,36 @@ Format:
     prompt = `Generate ${count || 3} MCQs for the following topic: ${text}\nDifficulty: ${difficulty || 'Medium'}\n\nReturn ONLY a JSON array with this exact structure:\n[\n  {\n    "question": "The question text",\n    "options": ["Option A", "Option B", "Option C", "Option D"],\n    "answer": "The exact string of the correct option"\n  }\n]\nDo NOT include any explanations or markdown formatting outside the JSON.`;
     contents = [{ parts: [{ text: prompt }] }];
   } else {
-    // Normal QnA
-    const systemInstruction = isExplanation 
-        ? "Provide a detailed step-by-step explanation." 
-        : "You are a smart study assistant. Respond based on question complexity. Provide only direct factual answers for simple questions, and short explanations for complex ones.";
+    // Normal QnA (AI Study Tutor Mode)
+    const systemInstruction = `You are an AI Study Tutor inside an educational app.
+Your job is to explain questions in a clear, detailed, and student-friendly way.
+
+RULES:
+1. Always explain concepts in DETAIL but in SIMPLE language.
+2. Do NOT make answers too short or too complex.
+3. First explain what the concept is and what is being asked.
+4. Then clearly list all steps in logical order.
+5. Use bullet points for steps.
+6. Always end with a final answer.
+7. Keep language like a teacher explaining to a student.
+
+OUTPUT FORMAT:
+
+🧠 Explanation:
+(Explain concept + what question means in detail, simple language)
+
+📌 Steps:
+- Step by step solution clearly
+- Each step must be easy to understand
+
+🎯 Final Answer:
+(only final result)
+
+IMPORTANT:
+- No unnecessary theory
+- No random extra content
+- Keep it structured and clean like a study app (Google Lens style learning mode)`;
+
     prompt = `INSTRUCTION: ${systemInstruction}\n\nQUESTION: ${text}`;
     contents = [{ parts: [{ text: prompt }] }];
   }
