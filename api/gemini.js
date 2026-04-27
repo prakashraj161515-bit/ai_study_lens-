@@ -24,8 +24,21 @@ export default async function handler(req, res) {
   let contents = [];
 
   if (imageBase64) {
-    // OCR Task: Extract text from image
-    prompt = "Extract all readable text from this image exactly as it appears. Do not add formatting or markdown. If there is no text, reply with 'No text found'.";
+    // Unified OCR + MCQ Task
+    prompt = `Extract all readable text from this image exactly as it appears. Then generate 5 MCQs based on the extracted text.
+    
+Return ONLY valid JSON. No explanation. No markdown blocks outside the JSON.
+Format:
+{
+  "text": "...",
+  "mcqs": [
+    {
+      "question": "...",
+      "options": ["A", "B", "C", "D"],
+      "answer": "A"
+    }
+  ]
+}`;
     contents = [
       {
         parts: [
@@ -54,29 +67,44 @@ export default async function handler(req, res) {
   ];
 
   let lastErrorMsg = "Gemini API Error";
+  const maxRetriesPerModel = 2;
 
   for (const model of modelsToTry) {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
-    try {
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contents })
-      });
+    for (let attempt = 1; attempt <= maxRetriesPerModel; attempt++) {
+      try {
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ contents })
+        });
 
-      const data = await response.json();
-      
-      if (response.ok) {
-        // Success: Extract text from Gemini response
-        const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-        return res.status(200).json({ result: reply, model_used: model });
-      } else {
-        // Failed: save error and try next model
-        lastErrorMsg = data?.error?.message || "Unknown API Error";
+        const data = await response.json();
+        
+        if (response.ok) {
+          // Success: Extract text from Gemini response
+          let reply = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+          
+          // Clean markdown JSON formatting if present
+          reply = reply.replace(/```json/g, '').replace(/```/g, '').trim();
+          
+          return res.status(200).json({ result: reply, model_used: model });
+        } else {
+          // Failed: save error
+          lastErrorMsg = data?.error?.message || "Unknown API Error";
+          // If it's a 503 high demand or 429, wait a bit and retry
+          if (response.status === 503 || response.status === 429) {
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            continue; 
+          }
+          // Break inner loop for other errors to switch model
+          break;
+        }
+      } catch (error) {
+        lastErrorMsg = error.message;
+        await new Promise(resolve => setTimeout(resolve, 1000));
       }
-    } catch (error) {
-      lastErrorMsg = error.message;
     }
   }
 

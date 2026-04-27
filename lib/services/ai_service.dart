@@ -9,7 +9,7 @@ class AiService {
     return getAnswer("Say 'Hi'", isExplanation: false);
   }
 
-  Future<String> getAnswerFromImage(List<int> imageBytes) async {
+  Future<Map<String, dynamic>?> getAnswerFromImage(List<int> imageBytes) async {
     try {
       final response = await http.post(
         Uri.parse(apiUrl),
@@ -21,12 +21,18 @@ class AiService {
 
       final data = jsonDecode(utf8.decode(response.bodyBytes));
       
-      if (response.statusCode == 200) {
-        return data['result'] ?? "No text extracted.";
+      if (response.statusCode == 200 && data['result'] != null) {
+        // Parse the JSON string returned by Gemini
+        try {
+          return jsonDecode(data['result']) as Map<String, dynamic>;
+        } catch (e) {
+          print("Failed to parse Gemini JSON: $e");
+          return {'error': 'Failed to parse AI response. Raw: ${data['result']}'};
+        }
       }
-      return "Error: ${data['error'] ?? 'Backend error'}";
+      return {'error': "Error: ${data['error'] ?? 'Backend error'}"};
     } catch (e) {
-      return "Connection Error: $e";
+      return {'error': "Connection Error: $e"};
     }
   }
 

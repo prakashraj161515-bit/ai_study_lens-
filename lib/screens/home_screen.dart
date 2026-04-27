@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import '../widgets/feature_card.dart';
 import '../services/ai_service.dart';
 import 'result_screen.dart';
+import 'quiz_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -27,18 +28,29 @@ class _HomeScreenState extends State<HomeScreen> {
       // Read image bytes directly (Works on both Web and Mobile)
       final bytes = await image.readAsBytes();
       
-      // Use Backend Proxy to extract text via Gemini
-      String text = await AiService().getAnswerFromImage(bytes);
+      // Use Backend Proxy to extract text and generate MCQs via Gemini
+      final responseMap = await AiService().getAnswerFromImage(bytes);
 
       if (!mounted) return;
       setState(() => _isLoading = false);
 
-      if (text.isNotEmpty && !text.startsWith('Error:')) {
-        Navigator.push(context, MaterialPageRoute(
-          builder: (_) => ResultScreen(extractedText: text),
-        ));
+      if (responseMap != null) {
+        if (responseMap.containsKey('error')) {
+          _showError(responseMap['error']);
+        } else if (responseMap.containsKey('mcqs') && responseMap.containsKey('text')) {
+          // Unified flow: Image -> Text -> MCQs all in one go!
+          final text = responseMap['text'];
+          final List<dynamic> mcqsDynamic = responseMap['mcqs'];
+          final List<Map<String, dynamic>> mcqsList = mcqsDynamic.map((e) => Map<String, dynamic>.from(e)).toList();
+
+          Navigator.push(context, MaterialPageRoute(
+            builder: (_) => QuizScreen(sourceText: text, preGeneratedMcqs: mcqsList),
+          ));
+        } else {
+          _showError("Invalid response format from server.");
+        }
       } else {
-        _showError("Failed to extract text: $text");
+        _showError("Failed to process image.");
       }
     } catch (e) {
       if (mounted) setState(() => _isLoading = false);
@@ -83,7 +95,7 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 const CircularProgressIndicator(),
                 const SizedBox(height: 16),
-                Text("Analyzing your question...", style: TextStyle(color: Colors.grey[600])),
+                Text("Processing Image & Generating MCQs...", style: TextStyle(color: Colors.grey[600])),
               ],
             ),
           )

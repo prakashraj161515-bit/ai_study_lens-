@@ -5,8 +5,9 @@ import '../providers/app_provider.dart';
 
 class QuizScreen extends StatefulWidget {
   final String sourceText;
+  final List<Map<String, dynamic>>? preGeneratedMcqs;
 
-  const QuizScreen({super.key, required this.sourceText});
+  const QuizScreen({super.key, required this.sourceText, this.preGeneratedMcqs});
 
   @override
   State<QuizScreen> createState() => _QuizScreenState();
@@ -25,7 +26,12 @@ class _QuizScreenState extends State<QuizScreen> {
   @override
   void initState() {
     super.initState();
-    _fetchQuiz();
+    if (widget.preGeneratedMcqs != null && widget.preGeneratedMcqs!.isNotEmpty) {
+      _mcqs = widget.preGeneratedMcqs!;
+      _isLoading = false;
+    } else {
+      _fetchQuiz();
+    }
   }
 
   Future<void> _fetchQuiz() async {
