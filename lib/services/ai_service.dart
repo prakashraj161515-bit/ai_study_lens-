@@ -118,42 +118,29 @@ Provide a detailed step-by-step explanation.
   }
 
   Future<String> _callGemini(String text, String apiKey, String systemInstruction) async {
-    // Using confirmed working Gemini models (newest first)
-    List<String> modelNames = [
-      'gemini-3.1-flash-lite-preview',
-      'gemini-2.0-flash',
-      'gemini-1.5-flash',
-      'gemini-1.5-pro',
-      'gemini-1.5-flash-latest',
-    ];
+    try {
+      final response = await http.post(
+        Uri.parse('https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent?key=$apiKey'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'contents': [
+            {
+              'parts': [{'text': "INSTRUCTION: $systemInstruction\n\nQUESTION: $text"}]
+            }
+          ]
+        }),
+      );
 
-    String? lastError;
-
-    for (String model in modelNames) {
-      try {
-        final response = await http.post(
-          Uri.parse('https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=$apiKey'),
-          headers: {'Content-Type': 'application/json'},
-          body: jsonEncode({
-            'contents': [
-              {
-                'parts': [{'text': "INSTRUCTION: $systemInstruction\n\nQUESTION: $text"}]
-              }
-            ]
-          }),
-        );
-
-        if (response.statusCode == 200) {
-          final data = jsonDecode(utf8.decode(response.bodyBytes));
-          return data['candidates'][0]['content']['parts'][0]['text'];
-        } else {
-          final errorData = jsonDecode(response.body);
-          lastError = errorData['error']['message'];
-        }
-      } catch (_) {}
+      if (response.statusCode == 200) {
+        final data = jsonDecode(utf8.decode(response.bodyBytes));
+        return data['candidates'][0]['content']['parts'][0]['text'];
+      } else {
+        final errorData = jsonDecode(response.body);
+        return "Gemini Error: ${errorData['error']['message']}";
+      }
+    } catch (e) {
+      return "Gemini Connection Error: $e";
     }
-
-    return "Gemini Error: $lastError";
   }
 
   Future<List<Map<String, dynamic>>> getMcqs(String text, String apiKey, {String difficulty = 'Medium', int count = 3}) async {
