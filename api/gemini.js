@@ -48,7 +48,7 @@ export default async function handler(req, res) {
   }
 
   // Use the requested model
-  const model = "gemini-3.1-flash-lite-preview";
+  const model = "gemini-3.1-flash-lite";
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
   try {
