@@ -47,27 +47,39 @@ export default async function handler(req, res) {
     contents = [{ parts: [{ text: prompt }] }];
   }
 
-  // Use the requested model
-  const model = "gemini-3.1-flash-lite";
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+  // Models to try in order of preference
+  const modelsToTry = [
+    "gemini-3.1-flash-lite",
+    "gemini-2.5-flash-lite"
+  ];
 
-  try {
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contents })
-    });
+  let lastErrorMsg = "Gemini API Error";
 
-    const data = await response.json();
-    
-    if (!response.ok) {
-        return res.status(response.status).json({ error: data?.error?.message || "Gemini API Error" });
+  for (const model of modelsToTry) {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contents })
+      });
+
+      const data = await response.json();
+      
+      if (response.ok) {
+        // Success: Extract text from Gemini response
+        const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+        return res.status(200).json({ result: reply, model_used: model });
+      } else {
+        // Failed: save error and try next model
+        lastErrorMsg = data?.error?.message || "Unknown API Error";
+      }
+    } catch (error) {
+      lastErrorMsg = error.message;
     }
-    
-    // Extract text from Gemini response
-    const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-    return res.status(200).json({ result: reply });
-  } catch (error) {
-    return res.status(500).json({ error: error.message });
   }
+
+  // If all models failed, return the last error
+  return res.status(500).json({ error: lastErrorMsg });
 }
